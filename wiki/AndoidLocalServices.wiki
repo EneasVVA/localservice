@@ -1,0 +1,101 @@
+We had brief introduction in part one. Now lets look at the sample local service example. In this post, I will be writing very simple local service. I am assuming that you have at least executed "Hello World" example on android platform Lets create a new android project in eclipse with a name as
+
+Project Name :AndroidLocalService 
+
+Build Target = 2.2 (I have latest one so i am using but you can select whichever SDK you have)
+
+Application Name = LocalService
+
+Package Name = com.sample
+
+Activity Name = MainActivity 
+
+Min SDK Version = 8 
+
+Once the project is created , build it properly.
+
+1.Open main.xml and add two button with id as Btn_start and Btn_end. 
+
+2. Let create a package in src folder com.sample.service and we will add a class called as LocalService
+
+3. Open LocalService.In order to implement a service in android , we need to import android.app.Service and extends Service class . Implement unimplemented methods. Now as we said in part one Service is also a intent without any UI . Thus service also have life cycle like activity. So lets add some more methods like 
+
+ @Override
+
+ public void onCreate() { super.onCreate();} 
+
+ @Override
+
+ public void onDestroy() { super.onDestroy();}
+
+Most Important step , we need to register our service in android manifest.xml , exactly like we register activity but here instead of adding activity we will add service . Like bellow
+
+    <service android:name=".service.LocalService"></service>
+
+4.  In create method , lets add a call to function startLocalService which looks like this , I also added Timer in class.
+
+ private void startLocalService() {
+
+ localServiceTimer.scheduleAtFixedRate(
+
+ new TimerTask() {
+
+ public void run() {
+
+ try {
+
+ // do your service work
+
+ Thread.sleep(UPDATE_INTERVAL);
+
+ } catch (InterruptedException ie) {
+
+ // You can catch it and show appropriate message
+
+ }
+
+ }
+
+ }, DELAY_INTERVAL, UPDATE_INTERVAL);
+
+ }
+
+5. Okie this starts the service , perform the work but how to end the service ? , don't worry, in order to cancel thread lets add a function endLocalService and call it from onDestroy Method . In this method , we will just cancel a Timer . But you can actually interrupt your thread.
+
+ private void endLocalService() {  if (localServiceTimer!= null)  localServiceTimer.cancel();
+
+ Toast.makeText(this, "My Local Service ended", Toast.LENGTH_LONG).show(); }
+
+6. Now we implemented Service. Here when user will click on Start button, Service should start and show a toast message, and when user will click on end it should end .So I am adding following function in our main activity
+
+ private void setUp() {
+
+ //Creating a intent to launch a LocalService 
+
+        final Intent local_service = new Intent(this, LocalService.class);
+
+        //Setup on click listeners
+
+        Button btn_start_service = (Button) findViewById(R.id.Btn_start);
+
+        Button btn_end_service = (Button) findViewById(R.id.Btn_end);
+
+        // Start the service when user clicks on start 
+
+        btn_start_service.setOnClickListener(new View.OnClickListener()
+
+        { public void onClick(View view)
+
+           {startService(local_service);  }
+
+        });
+
+        // Stop the service when user clicks on end 
+
+        btn_end_service.setOnClickListener(new View.OnClickListener()
+
+        {  public void onClick(View view)
+
+            {stopService(local_service);
+
+            }  });} 
