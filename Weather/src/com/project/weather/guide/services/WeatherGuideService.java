@@ -2,7 +2,6 @@ package com.project.weather.guide.services;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Calendar;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,11 +16,8 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 
-import com.project.weather.guide.R;
 import com.project.weather.guide.WeatherGuide;
-import com.project.weather.guide.shared.GPSCoords;
 import com.project.weather.guide.shared.IConstants;
-import com.project.weather.guide.shared.LocationHelper;
 import com.project.weather.guide.shared.Utils;
 import com.project.weather.guide.shared.WeatherInfo;
 
@@ -30,6 +26,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -37,14 +34,12 @@ import android.os.AsyncTask;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.text.format.DateFormat;
 import android.util.Log;
 
 public class WeatherGuideService extends Service implements IConstants {
 	private final Binder binder = new LocalBinder();
 	Intent i = new Intent(WEATHER_UPDATE);
-	LocationManager locManager;
-	LocationHelper helper;
+	static LocationManager locManager;
 	WeatherDataFetcher fetcher;
 
 	@Override
@@ -64,9 +59,8 @@ public class WeatherGuideService extends Service implements IConstants {
 
 	private void initSetup() {
 		if (locManager != null) {
-			helper = new LocationHelper(locManager);
-			GPSCoords loc = helper.getCurrentLocation();
-			updateSetup(loc.getmLat(), loc.getmLon());
+			GPSCoords loc = calculateCurrentCoordinates();
+			updateSetup(loc.mLat, loc.mLon);
 		}
 	}
 
@@ -87,7 +81,8 @@ public class WeatherGuideService extends Service implements IConstants {
 		Set<Entry<String, String>> entries = params.entrySet();
 		Iterator itr = entries.iterator();
 		while (itr.hasNext()) {
-			Map.Entry<String, String> entry = (Map.Entry<String, String>) itr.next();
+			Map.Entry<String, String> entry = (Map.Entry<String, String>) itr
+					.next();
 			builder.append(entry.getKey());
 			builder.append("=" + entry.getValue());
 		}
@@ -106,16 +101,13 @@ public class WeatherGuideService extends Service implements IConstants {
 		params.put("lat", Double.toString(latitude));
 		params.put("&lon", Double.toString(longitude));
 		params.put("&product", "time-series");
-//		String startdate =  Utils.now("yyyy-mm-dd");
-	//	String endDate =  Utils.tomorrow("yyyy-mm-dd");
-		params.put("&begin",""); // glance
+		params.put("&begin", ""); // glance
 		params.put("&end", ""); // glance
-//		params.put("&maxt", "maxt");
-//		params.put("&mint", "mint");
-		
-	    params.put("&temp", "temp");
+		params.put("&temp", "temp");
 		params.put("&icons", "icons");
-//		params.put("&sky", "sky");
+		// params.put("&maxt", "maxt");
+		// params.put("&mint", "mint");
+		// params.put("&sky", "sky");
 		return params;
 	}
 
@@ -131,7 +123,7 @@ public class WeatherGuideService extends Service implements IConstants {
 		}
 		return result;
 	}
-	
+
 	// Helper method to cancle task status
 	private void cancleTask() {
 		if (fetcher != null && fetcher.getStatus() != AsyncTask.Status.FINISHED) {
@@ -160,8 +152,9 @@ public class WeatherGuideService extends Service implements IConstants {
 		CharSequence contentText = "Forecast Update";
 
 		final NotificationManager mgr = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-		Notification note = new Notification(android.R.drawable.ic_menu_mylocation,
-				"New Weather update!", System.currentTimeMillis());
+		Notification note = new Notification(
+				android.R.drawable.ic_menu_mylocation, "New Weather update!",
+				System.currentTimeMillis());
 		long[] vibrate = { 100, 100, 200, 300 };
 		note.vibrate = vibrate;
 		note.defaults = Notification.DEFAULT_ALL;
@@ -289,5 +282,34 @@ public class WeatherGuideService extends Service implements IConstants {
 			updateSetup(location.getLatitude(), location.getLongitude());
 		}
 	};
+
+	/**
+	 * Attempt to get the last known location of the device. Usually this is the
+	 * last value that a location provider set
+	 */
+	private static GPSCoords calculateCurrentCoordinates() {
+		GPSCoords mPlaceCoords = null;
+		double lat = 0, lon = 0;
+		try {
+			Criteria criteria = new Criteria();
+			String best = locManager.getBestProvider(criteria, true);
+			Location recentLoc = locManager.getLastKnownLocation(best);
+			lat = (double) recentLoc.getLatitude();
+			lon = (double) recentLoc.getLongitude();
+			mPlaceCoords = new GPSCoords(lat, lon);
+		} catch (Exception e) {
+			Log.e(TAG, "Location failed", e);
+		}
+		return mPlaceCoords;
+	}
+
+	public static class GPSCoords {
+		public double mLat, mLon;
+
+		GPSCoords(double lat, double lon) {
+			mLat = lat;
+			mLon = lon;
+		}
+	}
 
 }

@@ -2,7 +2,6 @@ package com.project.weather.guide;
 
 import com.project.weather.guide.services.WeatherGuideService;
 import com.project.weather.guide.services.WeatherGuideServiceMonitor;
-import com.project.weather.guide.shared.GPSCoords;
 import com.project.weather.guide.shared.IConstants;
 
 import android.app.Activity;
